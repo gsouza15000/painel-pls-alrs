@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de PLs da ALRS</title>
+<style>
+/* Layout: cabeçalho, filtros fixos à esquerda, resumo e lista de proposições à direita. Empilha no celular. */
+:root{
+  --bg:#f2f4f1; --surface:#ffffff; --ink:#18271f; --muted:#5a6b62; --line:#d3dbd6;
+  --accent:#0b6b3a; --accent-ink:#ffffff; --mark:#fde68a; --chip:#e5ece7;
+  --s-pty:#dbe9fb; --s-sts:#fdf0c9; --s-thm:#ece5fa;
+  --display:"Fraunces","Georgia",serif; --body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101814; --surface:#18231d; --ink:#e6efe9; --muted:#9fb1a6; --line:#2b3a32;
+  --accent:#4fbf83; --accent-ink:#0c1a12; --mark:#6b5a12; --chip:#233229;
+  --s-pty:#1f3552; --s-sts:#4a3d12; --s-thm:#35294f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101814; --surface:#18231d; --ink:#e6efe9; --muted:#9fb1a6; --line:#2b3a32;
+  --accent:#4fbf83; --accent-ink:#0c1a12; --mark:#6b5a12; --chip:#233229;
+  --s-pty:#1f3552; --s-sts:#4a3d12; --s-thm:#35294f; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+header{background:var(--accent);color:var(--accent-ink);padding:18px 20px}
+header h1{margin:0;font:600 24px/1.2 var(--display);text-wrap:balance}
+header p{margin:4px 0 0;font-size:13px;opacity:.9;max-width:78ch}
+.wrap{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;padding:16px 20px;align-items:start}
+@media (max-width:860px){.wrap{grid-template-columns:1fr;padding:12px 16px}}
+aside{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;position:sticky;top:10px}
+@media (max-width:860px){aside{position:static}}
+label.l{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:12px 0 4px}
+aside input,aside select,.bar select{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;font-size:14px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row2{display:flex;gap:8px}.row2>div{flex:1;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:14px;padding:3px 10px;font:inherit;font-size:13px;cursor:pointer;background:var(--surface);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn{margin-top:14px;width:100%;padding:9px;border:1px solid var(--line);border-radius:6px;background:var(--chip);color:var(--ink);font:600 14px var(--body);cursor:pointer}
+main{min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.kpi h2{margin:0 0 6px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.big{font:600 30px/1 var(--display);font-variant-numeric:tabular-nums}
+.big small{display:block;font:13px var(--body);color:var(--muted);margin-top:4px}
+.bars{display:flex;flex-direction:column;gap:3px}
+.bars button{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;border:0;background:none;color:var(--ink);font:inherit;font-size:13px;text-align:left;padding:2px 0;cursor:pointer}
+.bars .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bars b{font-variant-numeric:tabular-nums}
+.bars i{grid-column:1/3;display:block;height:5px;border-radius:3px;background:var(--accent);opacity:.75}
+.bar{display:flex;gap:10px;align-items:center;margin:4px 0 10px;flex-wrap:wrap}
+.bar .grow{flex:1}.bar select{width:auto}.bar .btn{margin:0;width:auto;padding:7px 12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.card h3{margin:0 0 4px;font-size:15px}.card h3 a{color:var(--accent);text-decoration:none}.card h3 a:hover{text-decoration:underline}
+.card p{margin:0}
+.meta{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.tag{display:inline-block;border-radius:10px;padding:2px 9px;font-size:12px;background:var(--chip);color:var(--ink)}
+.tag.p{background:var(--s-pty)}.tag.s{background:var(--s-sts)}.tag.t{background:var(--s-thm)}.tag.n{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.sec{margin:0 0 8px;font:600 18px var(--display)}
+.areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:14px}
+.area{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:600 14px/1.25 var(--body);text-align:left;cursor:pointer}
+.area:hover{border-color:var(--accent)}
+.area b{font:600 15px var(--body);font-variant-numeric:tabular-nums;color:var(--accent);background:var(--chip);border-radius:10px;padding:1px 8px}
+.area[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.area[aria-pressed="true"] b{background:transparent;color:var(--accent-ink)}
+.area.zero{opacity:.45}
+.note{font-size:12px;color:var(--muted);margin:-2px 0 10px}
+mark{background:var(--mark);color:inherit;border-radius:2px}
+.pg{display:flex;gap:10px;justify-content:center;align-items:center;margin:14px 0}
+.pg button{padding:7px 14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;font:inherit;cursor:pointer}
+.pg button:disabled{opacity:.4;cursor:default}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:24px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Painel de Projetos de Lei da Assembleia Legislativa do RS</h1>
+  <p>PL e PLC protocolados de 2023 a 2026, coletados diariamente em ww4.al.rs.gov.br. <span id="upd"></span> O partido segue a lista atual de deputados e fica em branco para Executivo, Judiciário, comissões, ex-deputados e suplentes. As áreas são classificadas por palavras da ementa, e um projeto pode aparecer em mais de uma área.</p>
+</header>
+<div class="wrap">
+  <aside aria-label="Filtros">
+    <label class="l" for="q">Buscar por assunto, palavra, autor ou número</label>
+    <input id="q" type="search" placeholder="ex.: autista, pedágio, 417/2024" autocomplete="off">
+    <label class="l" for="au">Autor principal</label><select id="au"></select>
+    <label class="l" for="pt">Partido</label><select id="pt"></select>
+    <div class="row2">
+      <div><label class="l" for="tp">Tipo</label><select id="tp"><option value="">Todos</option><option>PL</option><option>PLC</option></select></div>
+      <div><label class="l" for="an">Ano</label><select id="an"><option value="">Todos</option><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select></div>
+    </div>
+    <label class="l" for="st">Status atual</label><select id="st"></select>
+    <label class="l" for="d1">Protocolo, de</label><input type="date" id="d1">
+    <label class="l" for="d2">Protocolo, até</label><input type="date" id="d2">
+    <label class="l" for="co">Coautoria</label>
+    <select id="co"><option value="">Todos</option><option value="1">Com coautores</option><option value="0">Autor único</option></select>
+    <button class="btn" id="clr" type="button">Limpar filtros</button>
+  </aside>
+  <main>
+    <section aria-label="Áreas temáticas">
+      <h2 class="sec">Escolha uma área</h2>
+      <div class="areas" id="areas"></div>
+    </section>
+    <div class="kpis" id="kpis"></div>
+    <div class="bar">
+      <span id="count" aria-live="polite"></span><span class="grow"></span>
+      <button class="btn" id="cp" type="button">Copiar resultados</button>
+      <label>Ordenar <select id="ord">
+        <option value="pr-d">Protocolo, mais recente</option><option value="pr-a">Protocolo, mais antigo</option>
+        <option value="num">Número</option><option value="au">Autor, A-Z</option><option value="m-d">Última movimentação</option>
+      </select></label>
+    </div>
+    <div id="list"></div>
+    <div class="pg" id="pg"></div>
+  </main>
+</div>
+<script>
+(function(){
+const OUTROS='Outros (sem tema definido)';
+const $=id=>document.getElementById(id);
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const pd=s=>{const m=(s||'').match(/(\d+)\/(\d+)\/(\d+)/);return m?new Date(+m[3],+m[2]-1,+m[1]).getTime():0};
+const PS=25; const st={page:1,area:''}; let all=[]; let AREAS=[];
+const uniq=f=>[...new Set(all.map(f).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt'));
+const opts=(arr,first,extra='')=>'<option value="">'+first+'</option>'+arr.map(x=>'<option>'+esc(x)+'</option>').join('')+extra;
+
+function prepare(rows){
+  all=rows.map(p=>{
+    const first=p.au.split(' + ')[0];
+    const th=p.ar.length?p.ar:[OUTROS];
+    return {...p,first,th,prt:pd(p.d),mt:pd(p.m),co:/ \+ /.test(p.au),
+      txt:norm(p.o+' '+p.au+' '+p.k+' '+p.s)};
+  });
+  AREAS=[...new Set(all.flatMap(p=>p.ar))].sort((a,b)=>a.localeCompare(b,'pt')).concat([OUTROS]);
+  $('au').innerHTML=opts(uniq(x=>x.first),'Todos');
+  $('pt').innerHTML=opts(uniq(x=>x.p),'Todos','<option value="__none">Sem partido</option>');
+  $('st').innerHTML=opts(uniq(x=>x.s),'Todos');
+  render();
+}
+function filtered(skipArea){
+  const terms=norm($('q').value.trim()).split(/\s+/).filter(Boolean);
+  const au=$('au').value,pt=$('pt').value,tp=$('tp').value,an=$('an').value,s=$('st').value,co=$('co').value;
+  const d1=$('d1').value?new Date($('d1').value+'T00:00').getTime():0, d2=$('d2').value?new Date($('d2').value+'T23:59').getTime():1e15;
+  return all.filter(p=>terms.every(w=>p.txt.includes(w))&&(!au||p.first===au)
+    &&(!pt||(pt==='__none'?!p.p:p.p===pt))&&(!tp||p.t===tp)&&(!an||String(p.a)===an)&&(!s||p.s===s)
+    &&(!co||(co==='1')===p.co)&&p.prt>=d1&&p.prt<=d2&&(skipArea||!st.area||p.th.includes(st.area)));
+}
+function topN(arr,f,n){const m={};arr.forEach(x=>{const k=f(x);if(k)m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,n)}
+function bars(title,data,sel){
+  const mx=data.length?data[0][1]:1;
+  return '<div class="kpi"><h2>'+title+'</h2><div class="bars">'+data.map(([k,v])=>
+    '<button type="button" data-s="'+sel+'" data-v="'+esc(k)+'"><span class="t">'+esc(k)+'</span><b>'+v+'</b><i style="width:'+Math.max(4,v/mx*100)+'%"></i></button>').join('')+'</div></div>';
+}
+function hl(t,terms){
+  let h=esc(t);
+  terms.forEach(w=>{if(w.length<2)return;h=h.replace(new RegExp('('+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'),'<mark>$1</mark>')});
+  return h;
+}
+let last=[];
+function render(){
+  const base=filtered(true), r=base.filter(p=>!st.area||p.th.includes(st.area)), o=$('ord').value;
+  const ac={}; base.forEach(p=>p.th.forEach(a=>ac[a]=(ac[a]||0)+1));
+  $('areas').innerHTML='<button type="button" class="area" aria-pressed="'+(!st.area)+'" data-a=""><span>Todas as áreas</span><b>'+base.length+'</b></button>'
+    +AREAS.map(a=>'<button type="button" class="area'+(ac[a]?'':' zero')+'" aria-pressed="'+(st.area===a)+'" data-a="'+esc(a)+'"><span>'+esc(a)+'</span><b>'+(ac[a]||0)+'</b></button>').join('');
+  document.querySelectorAll('.area').forEach(b=>b.onclick=()=>{st.area=(st.area===b.dataset.a)?'':b.dataset.a;st.page=1;render()});
+  r.sort((a,b)=>o==='pr-d'?b.prt-a.prt||b.n-a.n:o==='pr-a'?a.prt-b.prt||a.n-b.n:o==='num'?a.a-b.a||a.n-b.n:o==='au'?a.first.localeCompare(b.first,'pt'):b.mt-a.mt);
+  last=r;
+  const pages=Math.max(1,Math.ceil(r.length/PS)); if(st.page>pages)st.page=1;
+  const terms=norm($('q').value.trim()).split(/\s+/).filter(Boolean);
+  $('count').innerHTML='<b>'+r.length.toLocaleString('pt-BR')+'</b> proposições';
+  $('kpis').innerHTML='<div class="kpi"><h2>Resultado</h2><div class="big">'+r.length.toLocaleString('pt-BR')+'<small>'+new Set(r.map(x=>x.first)).size+' autores</small></div></div>'
+    +bars('Autores com mais projetos',topN(r,x=>x.first,5),'au')
+    +bars('Status',topN(r,x=>x.s,5),'st')
+    +bars('Partidos',topN(r,x=>x.p||'Sem partido',5),'pt');
+  $('list').innerHTML=r.slice((st.page-1)*PS,st.page*PS).map(p=>
+    '<article class="card"><h3><a target="_blank" rel="noopener" href="https://ww4.al.rs.gov.br/legislativo/pesquisa?siglaTipoProposicao='+p.t+'&amp;nroProposicao='+p.n+'&amp;anoProposicao='+p.a+'">'+esc(p.k)+'</a></h3><p>'+hl(p.o,terms)+'</p><div class="meta"><span class="tag">'+esc(p.au)+'</span>'
+    +(p.dt&&(Date.now()-new Date(p.dt+'T12:00').getTime())<7*864e5?'<span class="tag n">Novo</span>':'')+(p.p?'<span class="tag p">'+esc(p.p)+'</span>':'')+'<span class="tag s">'+esc(p.s)+'</span>'+p.th.map(k=>'<span class="tag t">'+k+'</span>').join('')
+    +'<span>Protocolo '+(p.d||'-')+' · última movimentação '+(p.m||'-')+'</span></div></article>').join('')
+    ||'<div class="empty">Nenhuma proposição encontrada. Remova algum filtro ou troque a palavra buscada.</div>';
+  $('pg').innerHTML='<button type="button" id="pv"'+(st.page<=1?' disabled':'')+'>Anterior</button><span>Página '+st.page+' de '+pages+'</span><button type="button" id="nx"'+(st.page>=pages?' disabled':'')+'>Próxima</button>';
+  $('pv').onclick=()=>{st.page--;render();scrollTo(0,0)}; $('nx').onclick=()=>{st.page++;render();scrollTo(0,0)};
+  document.querySelectorAll('.bars button').forEach(b=>b.onclick=()=>{
+    const v=b.dataset.v,k=b.dataset.s; $(k).value=(k==='pt'&&v==='Sem partido')?'__none':v; st.page=1; render();});
+}
+['q','au','pt','tp','an','st','d1','d2','co','ord'].forEach(i=>$(i).addEventListener(i==='q'?'input':'change',()=>{st.page=1;render()}));
+$('clr').onclick=()=>{['q','d1','d2','au','pt','tp','an','st','co'].forEach(i=>$(i).value='');st.area='';st.page=1;render()};
+$('cp').onclick=async()=>{
+  const tsv=['Proposição\tTipo\tAutor\tPartido\tObjeto\tStatus\tProtocolo\tÚltima movimentação'].concat(last.map(p=>[p.k,p.t,p.au,p.p,p.o,p.s,p.d,p.m].join('\t'))).join('\n');
+  try{await navigator.clipboard.writeText(tsv);$('cp').textContent='Copiado ('+last.length+')'}catch(e){$('cp').textContent='Não foi possível copiar'}
+  setTimeout(()=>{$('cp').textContent='Copiar resultados'},2500);
+};
+fetch('meta.json').then(r=>r.json()).then(m=>{const d=new Date(m.atualizado_em);$('upd').textContent='Última atualização: '+d.toLocaleDateString('pt-BR')+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.'}).catch(()=>{});
+fetch('data.json').then(r=>r.json()).then(prepare).catch(()=>{$('list').innerHTML='<div class="empty">Não foi possível carregar os dados. Recarregue a página.</div>'});
+})();
+</script>
+</body>
+</html>

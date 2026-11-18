@@ -1,0 +1,47 @@
+name: Atualizar painel
+
+on:
+  schedule:
+    - cron: "0 9 * * *"   # 09:00 UTC = 06:00 em Brasília
+  workflow_dispatch:
+    inputs:
+      anos:
+        description: "Anos a coletar, separados por espaço (vazio = ano corrente)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: atualizar
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Coletar projetos da ALRS
+        run: python scripts/coletar.py ${{ inputs.anos != '' && format('--anos {0}', inputs.anos) || '' }}
+      - name: Salvar dados no repositório
+        run: |
+          git config user.name "painel-pls-alrs"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs scripts/partidos.json
+          if git diff --cached --quiet; then echo "sem mudanças"; else git commit -m "Atualiza dados ($(date -u +%F))" && git push; fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deploy
+        uses: actions/deploy-pages@v4
